@@ -22,12 +22,21 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import net.sf.json.JSONObject;
 
 /**
@@ -41,6 +50,10 @@ public class CurlTransformer {
 	private String headers[] = null;
 	//private String postParams = null;
 	private final String curlCommand;
+
+	static {
+		disableSSLVerification();
+	}
 
 	public CurlTransformer(String curlCommand) {
 		this.curlCommand = curlCommand;
@@ -60,6 +73,8 @@ public class CurlTransformer {
 			String urlString = getUrl();
 			URL url = new URL(urlString);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			//conn.
+			//URLConnection conn = null;
 			String postParameters = getPostParameters();
 			if (postParameters != null) {
 				conn.setRequestMethod("POST");
@@ -139,6 +154,40 @@ public class CurlTransformer {
 			query_pairs.put(key, value);
 		}
 		return query_pairs;
+	}
+
+	public static void disableSSLVerification() {
+
+		TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+				return null;
+			}
+
+			public void checkClientTrusted(X509Certificate[] certs, String authType) {
+			}
+
+			public void checkServerTrusted(X509Certificate[] certs, String authType) {
+			}
+
+		}};
+
+		SSLContext sc = null;
+		try {
+			sc = SSLContext.getInstance("SSL");
+			sc.init(null, trustAllCerts, new java.security.SecureRandom());
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+		HostnameVerifier allHostsValid = new HostnameVerifier() {
+			public boolean verify(String hostname, SSLSession session) {
+				return true;
+			}
+		};
+		HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
 	}
 
 }

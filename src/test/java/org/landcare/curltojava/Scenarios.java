@@ -19,7 +19,14 @@ public class Scenarios {
 	public final void setUp() {
 	}
 
+	/*
 	@Given("^The curl command \"([^\"]*)\"$")
+	public void The_curl_command(String arg1) throws Throwable {
+		this.curlCommand = arg1;
+	}
+	*/
+
+	@Given("^The curl command$")
 	public void The_curl_command(String arg1) throws Throwable {
 		this.curlCommand = arg1;
 	}

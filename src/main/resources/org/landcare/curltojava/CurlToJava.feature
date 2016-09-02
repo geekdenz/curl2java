@@ -7,14 +7,27 @@ Feature: curl to java
     execute it, returning connection or response objects.
 
   Scenario:
-    Given The curl command "curl 'http://echo.jsontest.com/key/value/one/two'"
+    Given The curl command 
+      """
+      curl 'http://echo.jsontest.com/key/value/one/two'
+      """
     Then The response should contain the property "key" with value "value"
 
   Scenario:
-    Given The curl command "curl http://scooterlabs.com/echo.json?foo=bar -d 'hello=world&body=json'"
+    Given The curl command 
+      """
+      curl http://scooterlabs.com/echo.json?foo=bar -d 'hello=world&body=json'
+      """
     Then The response's "request" property should contain the property "foo" with value "bar"
     Then The response's "request" property should contain the property "hello" with value "world"
     #And The response's "request" property should contain the property "body" with value "json"
+
+  Scenario:
+    Given The curl command 
+      """
+      curl https://dcoder.nz/echo/ -d '{"hello":"world","body":"json"}'
+      """
+    Then The response should contain the property "hello" with value "world"
 
 #@foo34 @bar
 #Feature: Sample Feature
