@@ -35,9 +35,11 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import net.sf.json.JSONObject;
+import net.sf.json.processors.JsonVerifier;
 
 /**
  *
@@ -45,27 +47,46 @@ import net.sf.json.JSONObject;
  */
 public class CurlTransformer {
 
-	//private String curlCommand = null;
 	private String splitCommand[] = null;
 	private String headers[] = null;
-	//private String postParams = null;
 	private final String curlCommand;
-
-	static {
-		disableSSLVerification();
-	}
 
 	public CurlTransformer(String curlCommand) {
 		this.curlCommand = curlCommand;
 		this.splitCommand = curlCommand.split(" +");
 		this.headers = getHeaders();
-		//this.postParams = getPostParameters();
 	}
 
 	public static void main(String[] args) {
 		//String response = new CurlTransformer("curl 'http://test.smap.landcareresearch.co.nz/services/point_query/json?_dc=1472707898014&layers=smap_soil_drainage&longitude=5161420.2021421&latitude=1585716.6820873&epsg=2193' -d 'hello=post&another=variable' -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: en-US,en;q=0.8,en-NZ;q=0.6,de;q=0.4' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36' -H 'Accept: */*' -H 'Referer: http://test.smap.landcareresearch.co.nz/smap' -H 'X-Requested-With: XMLHttpRequest' -H 'Cookie: ys-help=b%3A1; ASP.NET_SessionId=sdkcvkyfj32003g5xj3wqtxy; __utma=137900973.1821734114.1441574815.1456870503.1467086067.9; __utmc=137900973; __utmz=137900973.1467086067.9.7.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); __utma=167366204.1821734114.1441574815.1472162378.1472165353.20; __utmc=167366204; __utmz=167366204.1472101237.18.3.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); ys-terms=b%3A1; ys-help=b%3A1; ys-rhs_panel=o%3Acollapsed%3Db%253A0; ys-terms=b%3A1; ys-rhs_panel=o%3Acollapsed%3Db%253A0; _ga=GA1.3.1821734114.1441574815; _gat=1' -H 'Connection: keep-alive' -H 'Cache-Control: no-cache' --compressed").getJson().toString(2);
 		String response = new CurlTransformer("curl http://scooterlabs.com/echo.json?foo=bar -d 'hello=world&body=json'").getJson().toString(2);
+		//String response = new CurlTransformer("curl https://dcoder.nz/").getResponse();
 		System.out.println("RESPONSE: " + response);
+	}
+
+	private SSLSocketFactory getLenientSSLSocketFactory() {
+		TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+				return null;
+			}
+
+			public void checkClientTrusted(X509Certificate[] certs, String authType) {
+			}
+
+			public void checkServerTrusted(X509Certificate[] certs, String authType) {
+			}
+
+		}};
+		SSLContext sc = null;
+		try {
+			sc = SSLContext.getInstance("SSL");
+			sc.init(null, trustAllCerts, new java.security.SecureRandom());
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return sc.getSocketFactory();
 	}
 
 	public String getResponse() {
@@ -73,9 +94,14 @@ public class CurlTransformer {
 			String urlString = getUrl();
 			URL url = new URL(urlString);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			//conn.
-			//URLConnection conn = null;
+			HttpsURLConnection sConn = null;
 			String postParameters = getPostParameters();
+			if (conn instanceof HttpsURLConnection) {
+				sConn = ((HttpsURLConnection) conn);
+				sConn.setHostnameVerifier(getLenientHostnameVerifier()); // DANGEROUS! Don't use in production code!
+				sConn.setSSLSocketFactory(getLenientSSLSocketFactory()); // disable some more security
+				System.out.println("NOT VERIFYING HTTPS");
+			}
 			if (postParameters != null) {
 				conn.setRequestMethod("POST");
 				byte[] postData = postParameters.getBytes(StandardCharsets.UTF_8);
@@ -83,7 +109,11 @@ public class CurlTransformer {
 				conn.setDoOutput(true);
 				conn.setInstanceFollowRedirects(false);
 				conn.setRequestMethod("POST");
-				conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+				if (JsonVerifier.isValidJsonValue(postData)) {
+					conn.setRequestProperty("Content-Type", "application/json");
+				} else {
+					conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+				}
 				conn.setRequestProperty("charset", "utf-8");
 				conn.setRequestProperty("Content-Length", Integer.toString(postDataLength));
 				conn.setUseCaches(false);
@@ -126,7 +156,7 @@ public class CurlTransformer {
 	private String getPostParameters() {
 		Pattern pattern = Pattern.compile("-d +" + VALUE_PATTERN);
 		Matcher matcher = pattern.matcher(curlCommand);
-		Map<String, String> postParameters = null;
+		//Map<String, String> postParameters = null;
 		while (matcher.find()) {
 			String query = matcher.group(1);
 			return query;
@@ -140,7 +170,6 @@ public class CurlTransformer {
 		while (matcher.find()) {
 			System.out.println("group: " + matcher.group(1));
 		}
-		//boolean matches = curlCommand.matches("-H +'([^']+)'");
 		return null;
 	}
 
@@ -156,38 +185,13 @@ public class CurlTransformer {
 		return query_pairs;
 	}
 
-	public static void disableSSLVerification() {
-
-		TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-				return null;
-			}
-
-			public void checkClientTrusted(X509Certificate[] certs, String authType) {
-			}
-
-			public void checkServerTrusted(X509Certificate[] certs, String authType) {
-			}
-
-		}};
-
-		SSLContext sc = null;
-		try {
-			sc = SSLContext.getInstance("SSL");
-			sc.init(null, trustAllCerts, new java.security.SecureRandom());
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-
+	private HostnameVerifier getLenientHostnameVerifier() {
 		HostnameVerifier allHostsValid = new HostnameVerifier() {
 			public boolean verify(String hostname, SSLSession session) {
 				return true;
 			}
 		};
-		HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+		return allHostsValid;
 	}
 
 }
