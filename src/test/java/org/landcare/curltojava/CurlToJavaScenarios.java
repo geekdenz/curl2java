@@ -10,8 +10,9 @@ import java.util.concurrent.TimeUnit;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
-public class Scenarios {
+public class CurlToJavaScenarios {
 
 	private String curlCommand;
 
@@ -24,8 +25,7 @@ public class Scenarios {
 	public void The_curl_command(String arg1) throws Throwable {
 		this.curlCommand = arg1;
 	}
-	*/
-
+	 */
 	@Given("^The curl command$")
 	public void The_curl_command(String arg1) throws Throwable {
 		this.curlCommand = arg1;
@@ -49,6 +49,23 @@ public class Scenarios {
 		System.out.println("json: " + json.toString(2));
 		assertTrue("JSON property: " + property + " key: " + key
 				+ " is value: " + value, json.get(key).equals(value));
+	}
+
+	@Then("^The JSON path \"([^\"]*)\" should contain the value \"([^\"]*)\"$")
+	public void The_JSON_path_should_contain_the_value(String path, String value) throws Throwable {
+		System.out.println("CURL: " + curlCommand);
+		JSONObject json = new CurlTransformer(curlCommand).getJson();
+		System.out.println("JSON: " + json);
+		//String realValue = new JSONPathObject(json).getStringValue(path);
+		//System.out.println("REAL VAULE: " + realValue);
+		//System.exit(0);
+		//assertTrue("", realValue.equals(value));
+	}
+
+	@Then("^The response should contain \"([^\"]*)\"$")
+	public void The_response_should_contain(String arg1) throws Throwable {
+		assertTrue("Response contains '" + arg1 + "'",
+				new CurlTransformer(curlCommand).getResponse().contains(arg1));
 	}
 
 	@After

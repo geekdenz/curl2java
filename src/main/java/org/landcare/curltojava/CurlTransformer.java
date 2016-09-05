@@ -59,8 +59,8 @@ public class CurlTransformer {
 
 	public static void main(String[] args) {
 		//String response = new CurlTransformer("curl 'http://test.smap.landcareresearch.co.nz/services/point_query/json?_dc=1472707898014&layers=smap_soil_drainage&longitude=5161420.2021421&latitude=1585716.6820873&epsg=2193' -d 'hello=post&another=variable' -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: en-US,en;q=0.8,en-NZ;q=0.6,de;q=0.4' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36' -H 'Accept: */*' -H 'Referer: http://test.smap.landcareresearch.co.nz/smap' -H 'X-Requested-With: XMLHttpRequest' -H 'Cookie: ys-help=b%3A1; ASP.NET_SessionId=sdkcvkyfj32003g5xj3wqtxy; __utma=137900973.1821734114.1441574815.1456870503.1467086067.9; __utmc=137900973; __utmz=137900973.1467086067.9.7.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); __utma=167366204.1821734114.1441574815.1472162378.1472165353.20; __utmc=167366204; __utmz=167366204.1472101237.18.3.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); ys-terms=b%3A1; ys-help=b%3A1; ys-rhs_panel=o%3Acollapsed%3Db%253A0; ys-terms=b%3A1; ys-rhs_panel=o%3Acollapsed%3Db%253A0; _ga=GA1.3.1821734114.1441574815; _gat=1' -H 'Connection: keep-alive' -H 'Cache-Control: no-cache' --compressed").getJson().toString(2);
-		String response = new CurlTransformer("curl http://scooterlabs.com/echo.json?foo=bar -d 'hello=world&body=json'").getJson().toString(2);
-		//String response = new CurlTransformer("curl https://dcoder.nz/").getResponse();
+		//String response = new CurlTransformer("curl http://scooterlabs.com/echo.json?foo=bar -d 'hello=world&body=json'").getJson().toString(2);
+		String response = new CurlTransformer("curl https://dcoder.nz/echo/ --data 'polygon=hello you'").getResponse();
 		System.out.println("RESPONSE: " + response);
 	}
 
@@ -154,11 +154,11 @@ public class CurlTransformer {
 	private static final String VALUE_PATTERN = "'(([^']|\\')+)'";
 
 	private String getPostParameters() {
-		Pattern pattern = Pattern.compile("-d +" + VALUE_PATTERN);
+		Pattern pattern = Pattern.compile("--?d(ata)? +" + VALUE_PATTERN);
 		Matcher matcher = pattern.matcher(curlCommand);
 		//Map<String, String> postParameters = null;
 		while (matcher.find()) {
-			String query = matcher.group(1);
+			String query = matcher.group(2);
 			return query;
 		}
 		return null;
